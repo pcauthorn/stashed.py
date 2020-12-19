@@ -1,11 +1,11 @@
-from stashed.storage import SqliteStash
+from stashed.storage import SqliteStore
 import os
 
-_Stasher = SqliteStash()
+_Stasher = SqliteStore()
 
 
 def stash(key, obj):
-    _Stasher.stash(key, obj)
+    _Stasher.store(key, obj)
 
 
 def ls():

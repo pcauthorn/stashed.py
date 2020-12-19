@@ -16,40 +16,58 @@ def cursor(connection):
         c.close()
 
 
-class SqliteStash:
+class SqliteStore:
 
-    def __init__(self, data_dir, db_name=None):
+    def __init__(self, data_dir, db_file_name=None):
         path = os.path.expanduser(data_dir)
-        db_name = db_name or 'stash_data.db'
-        self.conn = sqlite3.connect(os.path.join(path, db_name))
+        db_file_name = db_file_name or 'stash_data.db'
+        self.conn = sqlite3.connect(os.path.join(path, db_file_name))
         with cursor(self.conn) as c:
-            c = self.conn.cursor()
-            c.execute('CREATE TABLE data (date text, key text, value text)')
+            c.execute('CREATE TABLE IF NOT EXISTS data (timestamp text, key text, value text)')
 
-    def stash(self, key, obj):
+    def store(self, key, obj):
         obj_pickle = pickle.dumps(obj)
         with cursor(self.conn) as c:
             data = (datetime.utcnow().isoformat(), str(key), obj_pickle)
             c.execute(f'INSERT INTO data VALUES (?, ?, ?)', data)
 
+    def get(self, key, raise_key_error=False):
+        key = str(key)
+        with cursor(self.conn) as c:
+            data = c.execute(f'SELECT value from data where key = ?', (key,))
+            o = data.fetchone()
+            if raise_key_error and not o:
+                raise KeyError(f'{key} not in store')
+            elif o:
+                return pickle.loads(o[0])
+
     def ls(self):
-        items = self._ls()
         for index, item in enumerate(self._ls()):
             print(f'{index}: {item}')
 
     def delete(self, key):
+        key = str(key)
         with cursor(self.conn) as c:
-            c.execute(f'DELETE FROM data WHERE key = {key}')
+            c.execute(f'DELETE FROM data WHERE key = ?', (key,))
 
     def delete_by_index(self, index):
+        items = self._ls()
+        if index < len(items):
+            self.delete(items[index])
 
+    def delete_older(self, ref_time_utc):
+        with cursor(self.conn) as c:
+            c.execute('DELETE FROM data WHERE timestamp < ?', (ref_time_utc.isoformat(),))
 
     def _ls(self):
         items = []
         with cursor(self.conn) as c:
             for index, name in enumerate(c.execute('SELECT key FROM data')):
-                items.append(name)
+                items.append(name[0])
         return items
+
+    def close(self):
+        self.conn.close()
 
 
 class NoOpStash:
