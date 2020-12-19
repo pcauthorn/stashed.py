@@ -1,8 +1,8 @@
 import unittest
 import tempfile
 from stashed.storage import SqliteStore
-from datetime import date
-
+from datetime import date, datetime, timedelta
+from unittest.mock import patch
 
 class PickleMe:
     def __init__(self, v):
@@ -65,7 +65,20 @@ class TestSqliteStore(unittest.TestCase):
         self.assertEqual(len(self.store._ls()), 4)
 
     def test_delete_older(self):
-        pass
+        self.assertEqual(len(self.store._ls()), 0)
+        old = datetime.utcnow() - timedelta(minutes=2)
+        with patch.object(SqliteStore, '_get_now_str', new=lambda self: old.isoformat()):
+            self.store.store(1, 1)
+        lessold = old + timedelta(minutes=1)
+        with patch.object(SqliteStore, '_get_now_str', new=lambda self: lessold.isoformat()):
+            self.store.store(2, 2)
+        self.assertEqual(len(self.store._ls()), 2)
+        self.store.delete_older(old)
+        self.assertEqual(len(self.store._ls()), 2)
+        self.store.delete_older(lessold)
+        self.assertEqual(len(self.store._ls()), 1)
+        self.store.delete_older(datetime.utcnow())
+        self.assertEqual(len(self.store._ls()), 0)
 
 
 if __name__ == '__main__':

@@ -18,6 +18,9 @@ def cursor(connection):
 
 class SqliteStore:
 
+    def _get_now_str(self):
+        return datetime.utcnow().isoformat()
+
     def __init__(self, data_dir, db_file_name=None):
         path = os.path.expanduser(data_dir)
         db_file_name = db_file_name or 'stash_data.db'
@@ -28,7 +31,7 @@ class SqliteStore:
     def store(self, key, obj):
         obj_pickle = pickle.dumps(obj)
         with cursor(self.conn) as c:
-            data = (datetime.utcnow().isoformat(), str(key), obj_pickle)
+            data = (self._get_now_str(), str(key), obj_pickle)
             c.execute(f'INSERT INTO data VALUES (?, ?, ?)', data)
 
     def get(self, key, raise_key_error=False):
