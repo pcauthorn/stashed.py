@@ -1,7 +1,10 @@
-from stashed.storage import SqliteStore
 import os
 
-_Stasher = SqliteStore()
+from stashed.storage import SqliteStore
+
+DEFAULT_DIR = os.path.expanduser('~/.reiteration')
+
+_Stasher = SqliteStore(DEFAULT_DIR)
 
 
 def stash(key, obj, group=None):
@@ -9,7 +12,7 @@ def stash(key, obj, group=None):
 
 
 def retrieve(key):
-    _Stasher.get(key)
+    return _Stasher.get(key)
 
 
 def ls():
@@ -21,7 +24,7 @@ def delete(key):
 
 
 def exists(key):
-    _Stasher.exists(key)
+    return _Stasher.exists(key)
 
 
 def delete_by_index(index):

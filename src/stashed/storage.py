@@ -22,6 +22,8 @@ class SqliteStore:
         return datetime.utcnow().isoformat()
 
     def __init__(self, data_dir, db_file_name=None):
+        if not os.path.isdir(data_dir):
+            os.mkdir(data_dir)
         path = os.path.expanduser(data_dir)
         db_file_name = db_file_name or 'stash_data.db'
         self.conn = sqlite3.connect(os.path.join(path, db_file_name))
